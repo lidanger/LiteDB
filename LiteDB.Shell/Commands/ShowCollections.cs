@@ -3,6 +3,11 @@ using System.Linq;
 
 namespace LiteDB.Shell.Commands
 {
+    [Help(
+        Name = "show collections",
+        Syntax = "show collections",
+        Description = "List all collections inside datafile."
+    )]
     internal class ShowCollections : IShellCommand
     {
         public bool IsCommand(StringScanner s)
@@ -12,7 +17,9 @@ namespace LiteDB.Shell.Commands
 
         public void Execute(StringScanner s, Env env)
         {
-            var cols = env.Engine.GetCollectionNames().OrderBy(x => x).ToArray();
+            if (env.Database == null) throw new Exception("Database not connected");
+
+            var cols = env.Database.GetCollectionNames().OrderBy(x => x).ToArray();
 
             if (cols.Length > 0)
             {

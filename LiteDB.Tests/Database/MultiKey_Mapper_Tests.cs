@@ -1,25 +1,31 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using FluentAssertions;
+using Xunit;
 
 namespace LiteDB.Tests.Database
 {
-    #region Model
-
-    public class MultiKeyDoc
-    {
-        public int Id { get; set; }
-        public int[] Keys { get; set; }
-        public List<Customer> Customers { get; set; }
-    }
-
-    #endregion
-
-    [TestClass]
     public class MultiKey_Mapper_Tests
     {
-        [TestMethod]
+        #region Model
+
+        public class MultiKeyDoc
+        {
+            public int Id { get; set; }
+            public int[] Keys { get; set; }
+            public List<Customer> Customers { get; set; }
+        }
+
+        public class Customer
+        {
+            public string Login { get; set; }
+            public string Name { get; set; }
+        }
+
+        #endregion
+
+        [Fact]
         public void MultiKey_Mapper()
         {
             using (var file = new TempFile())
@@ -51,12 +57,12 @@ namespace LiteDB.Tests.Database
 
                 col.EnsureIndex(x => x.Keys);
                 col.EnsureIndex(x => x.Customers.Select(z => z.Name));
-
+                
                 // Query.EQ("Keys", 2)
-                Assert.AreEqual(2, col.Count(x => x.Keys.Contains(2)));
+                col.Count(x => x.Keys.Contains(2)).Should().Be(2);
 
                 // Query.StartsWith("Customers.Name", "Ana");
-                Assert.AreEqual(2, col.Count(x => x.Customers.Any(z => z.Name.StartsWith("Ana"))));
+                col.Count(x => x.Customers.Select(z => z.Name).Any(z => z.StartsWith("Ana"))).Should().Be(2);
 
             }
         }

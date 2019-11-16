@@ -10,13 +10,7 @@ namespace LiteDB.Shell
     {
         public static void Start(InputCommand input, Display display)
         {
-            var commands = new List<IShellCommand>();
             var env = new Env { Input = input, Display = display };
-
-            // register commands
-            RegisterCommands(commands);
-
-            display.TextWriters.Add(Console.Out);
 
             // show welcome message
             display.WriteWelcome();
@@ -30,26 +24,19 @@ namespace LiteDB.Shell
 
                 try
                 {
-                    var s = new StringScanner(cmd);
+                    var scmd = GetCommand(cmd);
 
-                    var found = false;
-
-                    // first test all shell app commands
-                    foreach (var command in commands)
+                    if (scmd != null)
                     {
-                        if (!command.IsCommand(s)) continue;
-
-                        command.Execute(s, env);
-
-                        found = true;
-                        break;
+                        scmd(env);
+                        continue;
                     }
 
-                    // if not found, try database command
-                    if (!found)
-                    {
-                        display.WriteResult(env.Engine.Run(cmd));
-                    }
+                    // if string is not a shell command, try execute as sql command
+                    if (env.Database == null) throw new Exception("Database not connected");
+
+                    display.WriteResult(env.Database.Execute(cmd));
+
                 }
                 catch (Exception ex)
                 {
@@ -58,19 +45,36 @@ namespace LiteDB.Shell
             }
         }
 
-        #region Register all commands
+        #region Shell Commands
 
-        public static void RegisterCommands(List<IShellCommand> commands)
+        private static readonly List<IShellCommand> _commands = new List<IShellCommand>();
+
+        static ShellProgram()
         {
             var type = typeof(IShellCommand);
             var types = typeof(ShellProgram).Assembly
                 .GetTypes()
                 .Where(p => type.IsAssignableFrom(p) && p.IsClass);
 
-            foreach(var cmd in types)
+            foreach (var cmd in types)
             {
-                commands.Add(Activator.CreateInstance(cmd) as IShellCommand);
+                _commands.Add(Activator.CreateInstance(cmd) as IShellCommand);
             }
+        }
+
+        public static Action<Env> GetCommand(string cmd)
+        {
+            var s = new StringScanner(cmd);
+
+            // first test all shell app commands
+            foreach (var command in _commands)
+            {
+                if (!command.IsCommand(s)) continue;
+
+                return (env) => command.Execute(s, env);
+            }
+
+            return null;
         }
 
         #endregion

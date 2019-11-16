@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using static LiteDB.Constants;
 
 namespace LiteDB
 {
@@ -15,14 +16,11 @@ namespace LiteDB
         /// <summary>
         /// Json serialize a BsonValue into a String
         /// </summary>
-        public static string Serialize(BsonValue value, bool pretty = false, bool writeBinary = true)
+        public static string Serialize(BsonValue value)
         {
             var sb = new StringBuilder();
 
-            using (var w = new StringWriter(sb))
-            {
-                Serialize(value ?? BsonValue.Null, w, pretty, writeBinary);
-            }
+            Serialize(value, sb);
 
             return sb.ToString();
         }
@@ -30,12 +28,24 @@ namespace LiteDB
         /// <summary>
         /// Json serialize a BsonValue into a TextWriter
         /// </summary>
-        public static void Serialize(BsonValue value, TextWriter writer, bool pretty = false, bool writeBinary = true)
+        public static void Serialize(BsonValue value, TextWriter writer)
         {
-            var w = new JsonWriter(writer);
-            w.Pretty = pretty;
-            w.WriteBinary = writeBinary;
-            w.Serialize(value ?? BsonValue.Null);
+            var json = new JsonWriter(writer);
+
+            json.Serialize(value ?? BsonValue.Null);
+        }
+
+        /// <summary>
+        /// Json serialize a BsonValue into a StringBuilder
+        /// </summary>
+        public static void Serialize(BsonValue value, StringBuilder sb)
+        {
+            using (var writer = new StringWriter(sb))
+            {
+                var w = new JsonWriter(writer);
+
+                w.Serialize(value ?? BsonValue.Null);
+            }
         }
 
         #endregion
@@ -47,7 +57,7 @@ namespace LiteDB
         /// </summary>
         public static BsonValue Deserialize(string json)
         {
-            if (json == null) throw new ArgumentNullException("json");
+            if (json == null) throw new ArgumentNullException(nameof(json));
 
             using (var sr = new StringReader(json))
             {
@@ -62,7 +72,7 @@ namespace LiteDB
         /// </summary>
         public static BsonValue Deserialize(TextReader reader)
         {
-            if (reader == null) throw new ArgumentNullException("reader");
+            if (reader == null) throw new ArgumentNullException(nameof(reader));
 
             var jr = new JsonReader(reader);
 
@@ -70,32 +80,11 @@ namespace LiteDB
         }
 
         /// <summary>
-        /// Deserialize a json using a StringScanner and returns BsonValue
-        /// </summary>
-        public static BsonValue Deserialize(StringScanner s)
-        {
-            if (s == null) throw new ArgumentNullException("s");
-
-            if (s.HasTerminated) return BsonValue.Null;
-
-            using (var sr = new StringReader(s.ToString()))
-            {
-                var reader = new JsonReader(sr);
-
-                var value = reader.Deserialize();
-
-                s.Seek((int)(reader.Position - 1));
-
-                return value;
-            }
-        }
-
-        /// <summary>
         /// Deserialize a json array as an IEnumerable of BsonValue
         /// </summary>
         public static IEnumerable<BsonValue> DeserializeArray(string json)
         {
-            if (json == null) throw new ArgumentNullException("json");
+            if (json == null) throw new ArgumentNullException(nameof(json));
 
             var sr = new StringReader(json);
             var reader = new JsonReader(sr);
@@ -107,7 +96,7 @@ namespace LiteDB
         /// </summary>
         public static IEnumerable<BsonValue> DeserializeArray(TextReader reader)
         {
-            if (reader == null) throw new ArgumentNullException("reader");
+            if (reader == null) throw new ArgumentNullException(nameof(reader));
 
             var jr = new JsonReader(reader);
 

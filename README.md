@@ -2,38 +2,34 @@
 
 [![Join the chat at https://gitter.im/mbdavid/LiteDB](https://badges.gitter.im/mbdavid/LiteDB.svg)](https://gitter.im/mbdavid/LiteDB?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Build status](https://ci.appveyor.com/api/projects/status/sfe8he0vik18m033?svg=true)](https://ci.appveyor.com/project/mbdavid/litedb) [![Build Status](https://travis-ci.org/mbdavid/LiteDB.svg?branch=master)](https://travis-ci.org/mbdavid/LiteDB)
 
+> First v5-alpha version was released
+
 LiteDB is a small, fast and lightweight NoSQL embedded database. 
 
 - Serverless NoSQL Document Store
-- Simple API similar to MongoDB
-- 100% C# code for .NET 3.5 / .NET 4.0 / NETStandard 1.3 / NETStandard 2.0 in a single DLL (less than 300kb)
-- Thread safe and process safe
-- ACID in document/operation level
-- Data recovery after write failure (journal mode)
+- Simple API, similar to MongoDB
+- 100% C# code for .NET 4.5 / NETStandard 2.0 in a single DLL (less than 300kb)
+- Thread-safe
+- ACID with full transaction support
+- Data recovery after write failure (WAL log file)
 - Datafile encryption using DES (AES) cryptography
 - Map your POCO classes to `BsonDocument` using attributes or fluent mapper API
 - Store files and stream data (like GridFS in MongoDB)
 - Single data file storage (like SQLite)
-- Index document fields for fast search (up to 16 indexes per collection)
+- Index document fields for fast search (up to 32 indexes per collection)
 - LINQ support for queries
-- Shell command line - [try this online version](http://www.litedb.org/#shell)
+- SQL-Like commands to access/transform data
+- [LiteDB Studio](https://github.com/mbdavid/LiteDB.Studio) - Nice UI for data access 
 - Pretty fast - [compare results with SQLite here](https://github.com/mbdavid/LiteDB-Perf)
 - Open source and free for everyone - including commercial use
 - Install from NuGet: `Install-Package LiteDB`
 
-## New in 4.0
-- New `Expressions/Path` index/query support. See [Expressions](https://github.com/mbdavid/LiteDB/wiki/Expressions)
-- Nested `Include` support
-- Optimzed query execution (with explain plain debug)
-- Fix concurrency problems
-- Remove transaction and auto index creation
-- Support for full scan search and LINQ search
-- New shell commands: update fields based on expressions and select/transform documents
-- See full [changelog](https://github.com/mbdavid/LiteDB/wiki/Changelog)
 
-## Try online
+## New v5
 
-[Try LiteDB Web Shell](http://www.litedb.org/#shell). For security reasons, in the online version not all commands are available. Try the offline version for full feature tests.
+Take a look at the all [new version v5 here](#v5)
+
+![LiteDB Studio](https://pbs.twimg.com/media/D_142rzWwAECJDd?format=jpg&name=900x900)
 
 ## Documentation
 
@@ -42,6 +38,10 @@ Visit [the Wiki](https://github.com/mbdavid/LiteDB/wiki) for full documentation.
 ## Download
 
 Download the source code or binary only in [LiteDB Releases](https://github.com/mbdavid/LiteDB/releases)
+
+## LiteDB Community
+
+Help LiteDB grow its user community by answering this [simple survey](https://docs.google.com/forms/d/e/1FAIpQLSc4cNG7wyLKXXcOLIt7Ea4TlXCG6s-51_EfHPu2p5WZ2dIx7A/viewform?usp=sf_link)
 
 ## How to use LiteDB
 
@@ -65,25 +65,25 @@ using(var db = new LiteDatabase(@"MyData.db"))
     var col = db.GetCollection<Customer>("customers");
 
     // Create your new customer instance
-	var customer = new Customer
+    var customer = new Customer
     { 
         Name = "John Doe", 
         Phones = new string[] { "8000-0000", "9000-0000" }, 
         Age = 39,
         IsActive = true
     };
-    
+
     // Create unique index in Name field
     col.EnsureIndex(x => x.Name, true);
-	
+
     // Insert new customer document (Id will be auto-incremented)
     col.Insert(customer);
-	
+
     // Update a document inside a collection
     customer.Name = "Joana Doe";
-	
+
     col.Update(customer);
-	
+
     // Use LINQ to query documents (with no index)
     var results = col.Find(x => x.Age > 20);
 }
@@ -105,7 +105,7 @@ public class Order
 // Re-use mapper from global instance
 var mapper = BsonMapper.Global;
 
-// "Produts" and "Customer" are from other collections (not embedded document)
+// "Products" and "Customer" are from other collections (not embedded document)
 mapper.Entity<Order>()
     .DbRef(x => x.Customer, "customers")   // 1 to 1/0 reference
     .DbRef(x => x.Products, "products")    // 1 to Many reference
@@ -145,17 +145,87 @@ using(var db = new LiteDatabase("MyOrderDatafile.db"))
 - A GUI editor tool: https://github.com/JosefNemec/LiteDbExplorer 
 - Lucene.NET directory: https://github.com/sheryever/LiteDBDirectory
 - LINQPad support: https://github.com/adospace/litedbpad
+- F# Support: https://github.com/Zaid-Ajaj/LiteDB.FSharp
 
 ## Changelog
 
 Change details for each release are documented in the [release notes](https://github.com/mbdavid/LiteDB/releases).
 
+## Code Signing
+
+LiteDB is digitally signed courtesy of [SignPath](https://www.signpath.io)
+
+<a href="https://www.signpath.io">
+    <img src="https://about.signpath.io/wp-content/uploads/2018/11/logo_signpath_500.png" width="150">
+</a>
+
 ## License
 
 [MIT](http://opensource.org/licenses/MIT)
 
-Copyright (c) 2017 - Maurício David
+Copyright (c) 2019 - Maurício David
 
-## Thanks
+---
 
-A special thanks to @negue and @szurgot helping with portable version and @lidanger for simplified chinese translation. 
+# <a name="v5"></a> LiteDB v5
+
+After more than a year of hard working, v5 is comming!
+
+> What's new in v5?
+
+- New Storage Engine
+    - New WAL (Write-Ahead Logging) for fast durability
+    - Database lock per collection
+    - MultiVersion Concurrency Control (Snapshots & Checkpoint)
+    - Multi concurrent `Stream` readers - Single async writer
+    - No lock for reader
+    - Up to 32 indexes per collection
+    - Atomic multi-document transactions
+    - PageSize: 8KB
+
+- New BsonExpression
+    - New super-fast tokenizer parser
+    - Clean syntax with optional use of `$`
+    - Input/Output parameter support: `@name`
+    - Simplified document notation `{ _id, name, year }`
+    - Support partial BSON document: read/deserialize only used data in query
+    - New Map function `$.Items => UPPER(@.Name)`
+    
+- System Collections
+    - Support query over internal collection 
+    - `$transactions`, `$database`, `$dump`
+
+- New QueryBuilder
+    - Fluent API for write queries
+    - Simple syntax using BsonExpressions
+    - Support OrderBy/GroupBy expressions
+    - Query optimization with Explain Plan
+    - Aggregate functions
+    - LINQ to `BsonExpression` query support - easy to use (and similar to EF)
+    
+- New SQL-Like syntax
+    - Simple SQL syntax for any command
+    - Syntax near to SQL ANSI 
+    - Support INSERT/UPDATE/DELETE/...
+    - MapReduce using GroupBy/Having
+   
+- New Native UI - [LiteDB.Studio](https://github.com/mbdavid/LiteDB.Studio)
+    - WinForms app to manipulate the database
+    - Based on SQL commands
+    - Show results in grid or as text
+    - Multi tabs, multi threads, multi transactions
+
+> What was dropped?
+
+- Single process only - optimized for multi thread (open file as exclusive mode)
+- Dropped .NET 3.5/4.0 - works only in .NET 4.5+ and .NETStandard 2.0
+- Shell commands (use SQL commands)
+    
+.. but still...   
+ 
+- Embedded support
+- Single database file 
+- Single DLL, no dependencies and 100% C#
+- 100% free open source
+    
+

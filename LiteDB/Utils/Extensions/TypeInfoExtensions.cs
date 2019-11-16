@@ -3,23 +3,26 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Collections;
+using static LiteDB.Constants;
 
 namespace LiteDB
 {
     internal static class TypeInfoExtensions
     {
-#if HAVE_TYPE_INFO
-        public static Type[] GetGenericArguments(this TypeInfo type)
+        public static bool IsAnonymousType(this Type type)
         {
-            return type.GenericTypeArguments;
+            var hasCompilerGeneratedAttribute = type.GetTypeInfo().GetCustomAttributes(typeof(CompilerGeneratedAttribute), false).Any();
+            var nameContainsAnonymousType = type.FullName.Contains("AnonymousType");
+            var isAnonymousType = hasCompilerGeneratedAttribute && nameContainsAnonymousType;
+
+            return isAnonymousType;
         }
-#else
-        // In 4.5+, TypeInfo has most of the reflection methods previously on type
-        // This allows code to be shared between 3.5 && 4.5+ projects
-        public static Type GetTypeInfo(this Type type)
+
+        public static bool IsEnumerable(this Type type)
         {
-            return type;
+            return typeof(IEnumerable).IsAssignableFrom(type);
         }
-#endif
     }
 }

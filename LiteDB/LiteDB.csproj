@@ -1,11 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net35;net40;netstandard1.3;netstandard2.0</TargetFrameworks>
+    <TargetFrameworks>net45;netstandard1.3;netstandard2.0</TargetFrameworks>
     <PackageId>LiteDB</PackageId>
-    <AssemblyVersion>4.0.0.0</AssemblyVersion>
-    <FileVersion>4.0.0</FileVersion>
-    <VersionPrefix>4.0.0</VersionPrefix>
+    <AssemblyVersion>5.0.0</AssemblyVersion>
+    <FileVersion>5.0.0</FileVersion>
+    <VersionPrefix>5.0.0</VersionPrefix>
     <Authors>Maurício David</Authors>
     <Product>LiteDB</Product>
     <Description>LiteDB - A lightweight embedded .NET NoSQL document store in a single datafile</Description>
@@ -13,6 +13,7 @@
     <NeutralLanguage>en-US</NeutralLanguage>
     <Title>LiteDB</Title>
     <PackageId>LiteDB</PackageId>
+    <PackageVersion>5.0.0-beta</PackageVersion>
     <PackageTags>database nosql embedded</PackageTags>
     <PackageIconUrl>http://www.litedb.org/img/logo_64x64.png</PackageIconUrl>
     <PackageProjectUrl>https://www.litedb.org</PackageProjectUrl>
@@ -26,7 +27,8 @@
     <NoWarn>1701;1702;1705;1591;0618</NoWarn>
     <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\LiteDB.xml</DocumentationFile>
     <SignAssembly Condition="'$(OS)'=='Windows_NT'">true</SignAssembly>
-    <AssemblyOriginatorKeyFile>LiteDB.snk</AssemblyOriginatorKeyFile>
+    <AssemblyOriginatorKeyFile Condition="'$(Configuration)' == 'Release'">LiteDB.snk</AssemblyOriginatorKeyFile>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   
   <!--
@@ -34,44 +36,35 @@
   HAVE_APP_DOMAIN
   HAVE_PROCESS
   HAVE_ENVIRONMENT
-  HAVE_FLUSH_DISK
-  HAVE_SYNC_OVER_ASYNC
-  HAVE_LOCK
-  HAVE_THREAD_ID
-  HAVE_TYPE_INFO
-  HAVE_EXPRESSION_ASSIGN
-  HAVE_TASK_DELAY
-  HAVE_ATTR_DEFINED
+  HAVE_SHA1_MANAGED
+  HAVE_GET_CULTURE_INFO
+  HAVE_DRIVE_INFO
   -->
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
     <DefineConstants>TRACE;DEBUG</DefineConstants>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net35'">
-    <DefineConstants>NET35;HAVE_APP_DOMAIN;HAVE_PROCESS;HAVE_ENVIRONMENT;HAVE_LOCK;HAVE_THREAD_ID;HAVE_ATTR_DEFINED</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)' == 'net40'">
-    <DefineConstants>NET40;HAVE_APP_DOMAIN;HAVE_PROCESS;HAVE_ENVIRONMENT;HAVE_FLUSH_DISK;HAVE_LOCK;HAVE_THREAD_ID;HAVE_EXPRESSION_ASSIGN;HAVE_ATTR_DEFINED</DefineConstants>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard1.3'">
-    <DefineConstants>NETSTANDARD13;HAVE_FLUSH_DISK;HAVE_SYNC_OVER_ASYNC;HAVE_TYPE_INFO;HAVE_EXPRESSION_ASSIGN;HAVE_TASK_DELAY</DefineConstants>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net45'">
+    <DefineConstants>HAVE_GET_CULTURE_INFO;HAVE_SHA1_MANAGED;HAVE_APP_DOMAIN;HAVE_PROCESS;HAVE_ENVIRONMENT;HAVE_DRIVE_INFO</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
-    <DefineConstants>NETSTANDARD20;HAVE_FLUSH_DISK;HAVE_SYNC_OVER_ASYNC;HAVE_LOCK;HAVE_TYPE_INFO;HAVE_EXPRESSION_ASSIGN;HAVE_TASK_DELAY;HAVE_ATTR_DEFINED</DefineConstants>
+    <DefineConstants>HAVE_GET_CULTURE_INFO;HAVE_SHA1_MANAGED;HAVE_DRIVE_INFO</DefineConstants>
   </PropertyGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net35' OR '$(TargetFramework)' == 'net40'">
+  <!-- Begin References -->
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net45'">
     <Reference Include="System" />
+    <Reference Include="System.Runtime" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3' OR '$(TargetFramework)' == 'netstandard2.0'">
-    <PackageReference Include="System.Reflection" Version="4.3.0" />
-    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.3.0" />
-    <PackageReference Include="System.Threading.Thread" Version="4.0.0" />
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard1.3'">
+    <PackageReference Include="System.Reflection.TypeExtensions" Version="4.5.1" />
+    <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.1" />
   </ItemGroup>
+  
+  <!-- End References -->
 
 </Project>

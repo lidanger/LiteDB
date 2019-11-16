@@ -2,6 +2,11 @@
 
 namespace LiteDB.Shell.Commands
 {
+    [Help(
+        Name = "version",
+        Syntax = "ver",
+        Description = "Show LiteDB version"
+    )]
     internal class Version : IShellCommand
     {
         public bool IsCommand(StringScanner s)

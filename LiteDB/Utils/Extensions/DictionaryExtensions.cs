@@ -1,29 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
+using static LiteDB.Constants;
 
 namespace LiteDB
 {
     internal static class DictionaryExtensions
     {
-        public static ushort NextIndex<T>(this Dictionary<ushort, T> dict)
-        {
-            ushort next = 0;
-
-            while (dict.ContainsKey(next))
-            {
-                next++;
-            }
-
-            return next;
-        }
-
         public static T GetOrDefault<K, T>(this IDictionary<K, T> dict, K key, T defaultValue = default(T))
         {
-            T result;
-
-            if (dict.TryGetValue(key, out result))
+            if (dict.TryGetValue(key, out T result))
             {
                 return result;
             }
@@ -31,35 +19,113 @@ namespace LiteDB
             return defaultValue;
         }
 
+        public static T GetOrAdd<K, T>(this IDictionary<K, T> dict, K key, Func<K, T> valueFactoy)
+        {
+            if (dict.TryGetValue(key, out var value) == false)
+            {
+                value = valueFactoy(key);
+
+                dict.Add(key, value);
+            }
+
+            return value;
+        }
+
         public static void ParseKeyValue(this IDictionary<string, string> dict, string connectionString)
         {
-            var s = new StringScanner(connectionString);
+            var position = 0;
 
-            while(!s.HasTerminated)
+            while(position < connectionString.Length)
             {
-                var key = s.Scan(@"(.*?)=", 1).Trim();
-                var value = "";
-                s.Scan(@"\s*");
+                EatWhitespace();
+                var key = ReadKey();
 
-                if (s.Match("\""))
-                {
-                    // read a value inside an string " (remove escapes)
-                    value = s.Scan(@"""((?:\\""|.)*?)""", 1).Replace("\\\"", "\"");
-                    s.Scan(@"\s*;?\s*");
-                }
-                else
-                {
-                    // read value
-                    value = s.Scan(@"(.*?);\s*", 1).Trim();
-
-                    // read last part
-                    if (value.Length == 0)
-                    {
-                        value = s.Scan(".*").Trim();
-                    }
-                }
+                EatWhitespace();
+                var value = ReadValue();
 
                 dict[key] = value;
+            }
+
+            string ReadKey()
+            {
+                var sb = new StringBuilder();
+
+                while (position < connectionString.Length)
+                {
+                    var current = connectionString[position];
+
+                    if (current == '=')
+                    {
+                        position++;
+                        return sb.ToString().Trim();
+                    }
+
+                    sb.Append(current);
+                    position++;
+                }
+
+                return sb.ToString().Trim();
+            }
+
+            string ReadValue()
+            {
+                var sb = new StringBuilder();
+                var quote =
+                    connectionString[position] == '"' ? '"' :
+                    connectionString[position] == '\'' ? '\'' : ' ';
+
+                if (quote != ' ') position++;
+
+                while (position < connectionString.Length)
+                {
+                    var current = connectionString[position];
+
+                    if (quote == ' ')
+                    {
+                        if (current == ';')
+                        {
+                            position++;
+                            return sb.ToString().Trim();
+                        }
+                    }
+                    else if (quote != ' ' && current == quote)
+                    {
+                        if (connectionString[position - 1] == '\\')
+                        {
+                            sb.Length--;
+                        }
+                        else
+                        {
+                            position++;
+
+                            EatWhitespace();
+
+                            if (connectionString[position] == ';') position++;
+
+                            return sb.ToString();
+                        }
+                    }
+
+                    sb.Append(current);
+                    position++;
+                }
+
+                return sb.ToString().Trim();
+            }
+
+            void EatWhitespace()
+            {
+                while (position < connectionString.Length)
+                {
+                    if(connectionString[position] == ' ' ||
+                        connectionString[position] == '\t' ||
+                        connectionString[position] == '\f')
+                    {
+                        position++;
+                        continue;
+                    }
+                    break;
+                }
             }
         }
 
@@ -70,13 +136,19 @@ namespace LiteDB
         {
             try
             {
-                string value;
-
-                if (dict.TryGetValue(key, out value) == false) return defaultValue;
+                if (dict.TryGetValue(key, out var value) == false) return defaultValue;
 
                 if (typeof(T) == typeof(TimeSpan))
                 {
-                    return (T)(object)TimeSpan.Parse(value);
+                    // if timespan are numbers only, convert as seconds
+                    if (Regex.IsMatch(value, @"^\d+$", RegexOptions.Compiled))
+                    {
+                        return (T)(object)TimeSpan.FromSeconds(Convert.ToInt32(value));
+                    }
+                    else
+                    {
+                        return (T)(object)TimeSpan.Parse(value);
+                    }
                 }
                 else if (typeof(T).GetTypeInfo().IsEnum)
                 {
@@ -89,7 +161,8 @@ namespace LiteDB
             }
             catch (Exception)
             {
-                throw new LiteException("Invalid connection string value type for [" + key + "]");
+                //TODO: fix string connection parser
+                throw new LiteException(0, $"Invalid connection string value type for `{key}`");
             }
         }
 

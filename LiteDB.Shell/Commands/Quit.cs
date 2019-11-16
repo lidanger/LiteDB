@@ -2,6 +2,11 @@
 
 namespace LiteDB.Shell.Commands
 {
+    [Help(
+        Name = "quit",
+        Syntax = "quit|exit",
+        Description = "Close shell application"
+    )]
     internal class Quit : IShellCommand
     {
         public bool IsCommand(StringScanner s)
@@ -11,7 +16,7 @@ namespace LiteDB.Shell.Commands
 
         public void Execute(StringScanner s, Env env)
         {
-            env.Close();
+            env.Database?.Dispose();
             env.Input.Running = false;
         }
     }

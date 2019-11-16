@@ -1,32 +1,37 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
+using static LiteDB.Constants;
 
-namespace LiteDB
+namespace LiteDB.Engine
 {
     public partial class LiteEngine
     {
-        /// <summary>
-        /// Get/Set User version internal database
-        /// </summary>
-        public ushort UserVersion
+        /// <summary>	
+        /// Get/Set database user version	
+        /// </summary>	
+        public int UserVersion
         {
             get
             {
-                using (_locker.Read())
-                {
-                    var header = _pager.GetPage<HeaderPage>(0);
-
-                    return header.UserVersion;
-                }
+                return _header.UserVersion;
             }
             set
             {
-                this.Transaction<bool>(null, false, (col) =>
+                if (_header.UserVersion == value) return;
+
+                if (_locker.IsInTransaction) throw LiteException.AlreadyExistsTransaction();
+
+                LOG($"change userVersion to `{value}`", "COMMAND");
+
+                // do a inside transaction to edit UserVersion on commit event	
+                this.AutoTransaction(transaction =>
                 {
-                    var header = _pager.GetPage<HeaderPage>(0);
-
-                    header.UserVersion = value;
-
-                    _pager.SetDirty(header);
+                    transaction.Pages.Commit += (h) =>
+                    {
+                        h.UserVersion = value;
+                    };
 
                     return true;
                 });
